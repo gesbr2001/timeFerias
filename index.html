@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Contador até as Férias</title>
+  <title>Contadores</title>
 
   <style>
     body {
@@ -12,7 +12,16 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+
+    .cards {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
     }
 
     .card {
@@ -90,58 +99,94 @@
 </head>
 <body>
 
-  <div class="card">
-    <h1>Timer até as Férias</h1>
-    <h3>1 DE SETEMBRO DE 2026</h3>
-    <p>Tempo restante até as minhas Férias</p>
+  <div class="cards">
+    <div class="card" data-inicio="2026-05-01T00:00:00" data-final="2026-09-01T00:00:00">
+      <h1>Timer ate as Ferias</h1>
+      <h3>1 DE SETEMBRO DE 2026</h3>
+      <p>Tempo restante ate as minhas Ferias</p>
 
-    <div id="timer" class="timer">
-      <div class="box">
-        <span id="dias">00</span>
-        <small>Dias</small>
+      <div class="timer">
+        <div class="box">
+          <span data-campo="dias">00</span>
+          <small>Dias</small>
+        </div>
+
+        <div class="box">
+          <span data-campo="horas">00</span>
+          <small>Horas</small>
+        </div>
+
+        <div class="box">
+          <span data-campo="minutos">00</span>
+          <small>Minutos</small>
+        </div>
+
+        <div class="box">
+          <span data-campo="segundos">00</span>
+          <small>Segundos</small>
+        </div>
       </div>
 
-      <div class="box">
-        <span id="horas">00</span>
-        <small>Horas</small>
+      <div class="progress-area">
+        <div class="progress-bar"></div>
       </div>
 
-      <div class="box">
-        <span id="minutos">00</span>
-        <small>Minutos</small>
-      </div>
-
-      <div class="box">
-        <span id="segundos">00</span>
-        <small>Segundos</small>
-      </div>
+      <div class="status">Calculando...</div>
     </div>
 
-    <div class="progress-area">
-      <div id="progressBar" class="progress-bar"></div>
-    </div>
+    <div class="card" data-inicio="2026-05-01T00:00:00" data-final="2026-06-13T19:00:00">
+      <h1>Jogo do Brasil na Copa</h1>
+      <h3>13 DE JUNHO DE 2026 - 19:00</h3>
+      <p>Tempo restante ate o jogo do Brasil na Copa</p>
 
-    <div id="status" class="status">Calculando...</div>
+      <div class="timer">
+        <div class="box">
+          <span data-campo="dias">00</span>
+          <small>Dias</small>
+        </div>
+
+        <div class="box">
+          <span data-campo="horas">00</span>
+          <small>Horas</small>
+        </div>
+
+        <div class="box">
+          <span data-campo="minutos">00</span>
+          <small>Minutos</small>
+        </div>
+
+        <div class="box">
+          <span data-campo="segundos">00</span>
+          <small>Segundos</small>
+        </div>
+      </div>
+
+      <div class="progress-area">
+        <div class="progress-bar"></div>
+      </div>
+
+      <div class="status">Calculando...</div>
+    </div>
   </div>
 
   <script>
-    const dataInicio = new Date("2026-05-01T00:00:00");
-    const dataFinal = new Date("2026-09-01T00:00:00");
-
     function formatarNumero(numero) {
       return numero < 10 ? "0" + numero : numero;
     }
 
-    function atualizarTimer() {
+    function atualizarTimer(card) {
+      const dataInicio = new Date(card.dataset.inicio);
+      const dataFinal = new Date(card.dataset.final);
       const agora = new Date();
       const diferenca = dataFinal - agora;
+      const timer = card.querySelector(".timer");
+      const progressBar = card.querySelector(".progress-bar");
+      const status = card.querySelector(".status");
 
       if (diferenca <= 0) {
-        document.getElementById("timer").innerHTML =
-          '<div class="finalizado">Tempo esgotado!</div>';
-
-        document.getElementById("progressBar").style.width = "100%";
-        document.getElementById("status").innerText = "Evento finalizado";
+        timer.innerHTML = '<div class="finalizado">Tempo esgotado!</div>';
+        progressBar.style.width = "100%";
+        status.innerText = "Evento finalizado";
         return;
       }
 
@@ -150,10 +195,10 @@
       const minutos = Math.floor((diferenca / (1000 * 60)) % 60);
       const segundos = Math.floor((diferenca / 1000) % 60);
 
-      document.getElementById("dias").innerText = formatarNumero(dias);
-      document.getElementById("horas").innerText = formatarNumero(horas);
-      document.getElementById("minutos").innerText = formatarNumero(minutos);
-      document.getElementById("segundos").innerText = formatarNumero(segundos);
+      card.querySelector('[data-campo="dias"]').innerText = formatarNumero(dias);
+      card.querySelector('[data-campo="horas"]').innerText = formatarNumero(horas);
+      card.querySelector('[data-campo="minutos"]').innerText = formatarNumero(minutos);
+      card.querySelector('[data-campo="segundos"]').innerText = formatarNumero(segundos);
 
       const total = dataFinal - dataInicio;
       const passado = agora - dataInicio;
@@ -161,13 +206,16 @@
 
       progresso = Math.min(Math.max(progresso, 0), 100);
 
-      document.getElementById("progressBar").style.width = progresso + "%";
-      document.getElementById("status").innerText =
-        progresso.toFixed(1) + "% do tempo já passou";
+      progressBar.style.width = progresso + "%";
+      status.innerText = progresso.toFixed(1) + "% do tempo ja passou";
     }
 
-    atualizarTimer();
-    setInterval(atualizarTimer, 1000);
+    function atualizarTimers() {
+      document.querySelectorAll(".card").forEach(atualizarTimer);
+    }
+
+    atualizarTimers();
+    setInterval(atualizarTimers, 1000);
   </script>
 
 </body>

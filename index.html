@@ -95,6 +95,52 @@
       font-size: 22px;
       font-weight: bold;
     }
+
+    .partida {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin: 18px 0 24px;
+    }
+
+    .time {
+      width: 120px;
+      display: grid;
+      gap: 8px;
+      justify-items: center;
+      color: #1f2937;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .bandeira {
+      width: 64px;
+      height: 44px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+    }
+
+    .bandeira-placeholder {
+      width: 64px;
+      height: 44px;
+      border-radius: 8px;
+      border: 1px dashed #9ca3af;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f9fafb;
+      color: #6b7280;
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .versus {
+      color: #6b7280;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -134,10 +180,25 @@
       <div class="status">Calculando...</div>
     </div>
 
-    <div class="card" data-inicio="2026-05-01T00:00:00" data-final="2026-06-29T14:00:00">
+    <div class="card" id="card-brasil" data-inicio="2026-05-01T00:00:00" data-final="2026-06-29T14:00:00" data-aguardando-api="1">
       <h1>Jogo do Brasil na Copa</h1>
-      <h3>24 de Junho de 2026 - 19:00</h3>
+      <h3 data-jogo-data>Carregando jogo...</h3>
       <p>Tempo restante ate o jogo do Brasil na Copa</p>
+
+      <div class="partida">
+        <div class="time">
+          <img class="bandeira" data-brasil-logo src="https://flagcdn.com/w160/br.png" alt="Bandeira do Brasil">
+          <span>Brasil</span>
+        </div>
+
+        <div class="versus">x</div>
+
+        <div class="time">
+          <div class="bandeira-placeholder" data-adversario-placeholder>?</div>
+          <img class="bandeira" data-adversario-logo src="" alt="" style="display: none;">
+          <span data-adversario-nome>A definir</span>
+        </div>
+      </div>
 
       <div class="timer">
         <div class="box">
@@ -170,11 +231,190 @@
   </div>
 
   <script>
+    const ESPN_SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard";
+    const BRASIL_SIGLAS = ["BRA"];
+
     function formatarNumero(numero) {
       return numero < 10 ? "0" + numero : numero;
     }
 
+    function normalizarNomeTime(nome) {
+      return (nome || "").toString().trim().toLowerCase();
+    }
+
+    function adversarioEstaIndefinido(nome) {
+      const nomeNormalizado = normalizarNomeTime(nome);
+      return !nomeNormalizado || nomeNormalizado === "a definir" || nomeNormalizado === "tbd" || nomeNormalizado === "to be decided";
+    }
+
+    function formatarDataApi(data) {
+      const ano = data.getFullYear();
+      const mes = formatarNumero(data.getMonth() + 1);
+      const dia = formatarNumero(data.getDate());
+
+      return "" + ano + mes + dia;
+    }
+
+    function listarDatasBusca() {
+      const datas = [];
+      const data = new Date();
+      const dataFinal = new Date("2026-07-19T23:59:59");
+
+      data.setHours(0, 0, 0, 0);
+
+      while (data <= dataFinal) {
+        datas.push(formatarDataApi(data));
+        data.setDate(data.getDate() + 1);
+      }
+
+      return datas;
+    }
+
+    async function buscarJsonComTimeout(url, tempoLimite) {
+      const controle = new AbortController();
+      const timeout = setTimeout(function() {
+        controle.abort();
+      }, tempoLimite);
+
+      try {
+        const resposta = await fetch(url, { signal: controle.signal });
+
+        if (!resposta.ok) {
+          throw new Error("Erro ao buscar placar");
+        }
+
+        return await resposta.json();
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
+    async function buscarEventosEspn() {
+      const eventosPorId = {};
+      const datas = listarDatasBusca();
+      const requisicoes = datas.map(function(data) {
+        return buscarJsonComTimeout(ESPN_SCOREBOARD_URL + "?dates=" + data, 8000);
+      });
+
+      const respostas = await Promise.allSettled([
+        buscarJsonComTimeout(ESPN_SCOREBOARD_URL, 8000)
+      ].concat(requisicoes));
+
+      respostas.forEach(function(resposta) {
+        if (resposta.status !== "fulfilled") {
+          return;
+        }
+
+        (resposta.value.events || []).forEach(function(evento) {
+          eventosPorId[evento.id] = evento;
+        });
+      });
+
+      return Object.values(eventosPorId);
+    }
+
+    function obterCompetidores(evento) {
+      return evento.competitions && evento.competitions[0] && evento.competitions[0].competitors
+        ? evento.competitions[0].competitors
+        : [];
+    }
+
+    function obterTime(competidor) {
+      return competidor && competidor.team ? competidor.team : {};
+    }
+
+    function timeEhBrasil(competidor) {
+      const time = obterTime(competidor);
+      return BRASIL_SIGLAS.indexOf(time.abbreviation) !== -1 || normalizarNomeTime(time.displayName) === "brazil";
+    }
+
+    function montarDataJogo(evento) {
+      const competicao = evento.competitions && evento.competitions[0] ? evento.competitions[0] : {};
+      return new Date(evento.date || competicao.date || competicao.startDate);
+    }
+
+    function formatarDataJogo(data) {
+      const dataFormatada = data.toLocaleDateString("pt-BR", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric"
+      });
+      const horaFormatada = data.toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+
+      return dataFormatada + " - " + horaFormatada;
+    }
+
+    function aplicarDadosJogoBrasil(evento) {
+      const card = document.getElementById("card-brasil");
+      const competidores = obterCompetidores(evento);
+      const brasil = competidores.find(timeEhBrasil);
+      const adversario = competidores.find(function(competidor) {
+        return !timeEhBrasil(competidor);
+      });
+      const timeBrasil = obterTime(brasil);
+      const timeAdversario = obterTime(adversario);
+      const dataJogo = montarDataJogo(evento);
+      const nomeAdversarioApi = timeAdversario.displayName || timeAdversario.shortDisplayName || timeAdversario.name || "";
+      const nomeAdversario = adversarioEstaIndefinido(nomeAdversarioApi) ? "A definir" : nomeAdversarioApi;
+      const logoAdversario = timeAdversario.logo || "";
+
+      card.dataset.final = dataJogo.toISOString();
+      card.dataset.aguardandoApi = "0";
+      card.querySelector("[data-jogo-data]").innerText = formatarDataJogo(dataJogo);
+
+      if (timeBrasil.logo) {
+        card.querySelector("[data-brasil-logo]").src = timeBrasil.logo;
+      }
+
+      card.querySelector("[data-adversario-nome]").innerText = nomeAdversario;
+
+      if (logoAdversario && !adversarioEstaIndefinido(nomeAdversario)) {
+        card.querySelector("[data-adversario-placeholder]").style.display = "none";
+        const imgAdversario = card.querySelector("[data-adversario-logo]");
+        imgAdversario.src = logoAdversario;
+        imgAdversario.alt = "Bandeira de " + nomeAdversario;
+        imgAdversario.style.display = "block";
+      }
+
+      atualizarTimer(card);
+    }
+
+    async function carregarJogoBrasil() {
+      const card = document.getElementById("card-brasil");
+
+      try {
+        const jogos = await buscarEventosEspn();
+        const agora = new Date();
+        const proximoJogo = jogos
+          .filter(function(evento) {
+            return obterCompetidores(evento).some(timeEhBrasil) && montarDataJogo(evento) >= agora;
+          })
+          .sort(function(a, b) {
+            return montarDataJogo(a) - montarDataJogo(b);
+          })[0];
+
+        if (!proximoJogo) {
+          card.querySelector("[data-jogo-data]").innerText = "Nenhum jogo futuro encontrado";
+          card.querySelector(".status").innerText = "Sem jogo futuro na ESPN";
+          return;
+        }
+
+        aplicarDadosJogoBrasil(proximoJogo);
+      } catch (erro) {
+        card.querySelector("[data-jogo-data]").innerText = "Nao foi possivel carregar o jogo";
+        card.querySelector(".status").innerText = "Verifique a API da ESPN";
+      }
+    }
+
     function atualizarTimer(card) {
+      if (card.dataset.aguardandoApi === "1") {
+        return;
+      }
+
       const dataInicio = new Date(card.dataset.inicio);
       const dataFinal = new Date(card.dataset.final);
       const agora = new Date();
@@ -215,6 +455,7 @@
     }
 
     atualizarTimers();
+    carregarJogoBrasil();
     setInterval(atualizarTimers, 1000);
   </script>
 

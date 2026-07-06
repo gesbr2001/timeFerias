@@ -96,13 +96,6 @@
       font-weight: bold;
     }
 
-    .partida {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      margin: 18px 0 24px;
-    }
 
     .time {
       width: 120px;
@@ -114,33 +107,6 @@
       font-size: 14px;
     }
 
-    .bandeira {
-      width: 64px;
-      height: 44px;
-      object-fit: cover;
-      border-radius: 8px;
-      border: 1px solid #e5e7eb;
-      background: #f9fafb;
-    }
-
-    .bandeira-placeholder {
-      width: 64px;
-      height: 44px;
-      border-radius: 8px;
-      border: 1px dashed #9ca3af;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #f9fafb;
-      color: #6b7280;
-      font-size: 22px;
-      font-weight: bold;
-    }
-
-    .versus {
-      color: #6b7280;
-      font-weight: bold;
-    }
   </style>
 </head>
 <body>
@@ -180,72 +146,10 @@
       <div class="status">Calculando...</div>
     </div>
 
-    <div class="card" id="card-brasil" data-inicio="2026-05-01T00:00:00" data-final="2026-06-29T14:00:00" data-aguardando-api="1">
-      <h1>Jogo do Brasil na Copa</h1>
-      <h3 data-jogo-data>Carregando jogo...</h3>
-      <p>Tempo restante ate o jogo do Brasil na Copa</p>
-
-      <div class="partida">
-        <div class="time">
-          <img class="bandeira" data-brasil-logo src="https://flagcdn.com/w160/br.png" alt="Bandeira do Brasil">
-          <span>Brasil</span>
-        </div>
-
-        <div class="versus">x</div>
-
-        <div class="time">
-          <div class="bandeira-placeholder" data-adversario-placeholder>?</div>
-          <img class="bandeira" data-adversario-logo src="" alt="" style="display: none;">
-          <span data-adversario-nome>A definir</span>
-        </div>
-      </div>
-
-      <div class="timer">
-        <div class="box">
-          <span data-campo="dias">00</span>
-          <small>Dias</small> 
-        </div>
-
-        <div class="box">
-          <span data-campo="horas">00</span>
-          <small>Horas</small>
-        </div>
-
-        <div class="box">
-          <span data-campo="minutos">00</span>
-          <small>Minutos</small>
-        </div>
-
-        <div class="box">
-          <span data-campo="segundos">00</span>
-          <small>Segundos</small>
-        </div>
-      </div>
-
-      <div class="progress-area">
-        <div class="progress-bar"></div>
-      </div>
-
-      <div class="status">Calculando...</div>
-    </div>
-  </div>
+    
 
   <script>
-    const ESPN_SCOREBOARD_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard";
-    const BRASIL_SIGLAS = ["BRA"];
-
-    function formatarNumero(numero) {
-      return numero < 10 ? "0" + numero : numero;
-    }
-
-    function normalizarNomeTime(nome) {
-      return (nome || "").toString().trim().toLowerCase();
-    }
-
-    function adversarioEstaIndefinido(nome) {
-      const nomeNormalizado = normalizarNomeTime(nome);
-      return !nomeNormalizado || nomeNormalizado === "a definir" || nomeNormalizado === "tbd" || nomeNormalizado === "to be decided";
-    }
+    
 
     function formatarDataApi(data) {
       const ano = data.getFullYear();

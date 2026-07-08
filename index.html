@@ -88,6 +88,16 @@
       font-size: 14px;
       color: #374151;
       font-weight: bold;
+      margin-bottom: 12px;
+    }
+
+    .dias-uteis {
+      font-size: 15px;
+      color: #2563eb;
+      font-weight: bold;
+      background: #eff6ff;
+      padding: 10px;
+      border-radius: 10px;
     }
 
     .finalizado {
@@ -112,9 +122,9 @@
 <body>
 
   <div class="cards">
-    <div class="card" data-inicio="2026-05-01T00:00:00" data-final="2026-09-01T00:00:00">
+    <div class="card" data-inicio="2026-05-01T00:00:00" data-final="2026-08-01T00:00:00">
       <h1>Timer ate as Ferias</h1>
-      <h3>1 DE SETEMBRO DE 2026</h3>
+      <h3>1 de AGOSTO de 2026</h3>
       <p>Tempo restante ate as minhas Ferias</p>
 
       <div class="timer">
@@ -144,6 +154,8 @@
       </div>
 
       <div class="status">Calculando...</div>
+
+      <div class="dias-uteis" data-campo="diasUteis">Calculando dias uteis...</div>
     </div>
 
     
@@ -151,6 +163,26 @@
   <script>
     function formatarNumero(valor) {
       return String(valor).padStart(2, "0");
+    }
+
+    // Conta quantos dias uteis (seg a sex) existem entre "inicio" (exclusive)
+    // e "fim" (inclusive), ambos considerados a partir da meia-noite.
+    function contarDiasUteis(inicio, fim) {
+      const atual = new Date(inicio);
+      atual.setHours(0, 0, 0, 0);
+
+      const fimData = new Date(fim);
+      fimData.setHours(0, 0, 0, 0);
+
+      let count = 0;
+      while (atual < fimData) {
+        atual.setDate(atual.getDate() + 1);
+        const diaSemana = atual.getDay(); // 0 = domingo, 6 = sabado
+        if (diaSemana !== 0 && diaSemana !== 6) {
+          count++;
+        }
+      }
+      return count;
     }
 
     function atualizarTimer(card) {
@@ -161,11 +193,13 @@
       const timer = card.querySelector(".timer");
       const progressBar = card.querySelector(".progress-bar");
       const status = card.querySelector(".status");
+      const diasUteisEl = card.querySelector('[data-campo="diasUteis"]');
 
       if (diferenca <= 0) {
         timer.innerHTML = '<div class="finalizado">Tempo esgotado!</div>';
         progressBar.style.width = "100%";
         status.innerText = "Evento finalizado";
+        diasUteisEl.innerText = "0 dias uteis restantes";
         return;
       }
 
@@ -187,6 +221,9 @@
 
       progressBar.style.width = progresso + "%";
       status.innerText = progresso.toFixed(1) + "% do tempo ja passou";
+
+      const diasUteis = contarDiasUteis(agora, dataFinal);
+      diasUteisEl.innerText = diasUteis + " dias uteis restantes";
     }
 
     function atualizarTimers() {

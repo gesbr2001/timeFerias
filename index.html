@@ -101,9 +101,85 @@
     }
 
     .finalizado {
-      color: #dc2626;
+      color: #16a34a;
       font-size: 22px;
       font-weight: bold;
+    }
+
+    .celebracao {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.82);
+      padding: 24px;
+      box-sizing: border-box;
+    }
+
+    .celebracao.visivel {
+      display: flex;
+    }
+
+    .celebracao-conteudo {
+      position: relative;
+      z-index: 2;
+      max-width: 560px;
+      padding: 36px 42px;
+      border-radius: 20px;
+      background: #fff;
+      color: #1f2937;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: aparecer 0.7s ease both;
+    }
+
+    .celebracao-conteudo h2 {
+      margin: 0 0 12px;
+      color: #16a34a;
+      font-size: 34px;
+    }
+
+    .celebracao-conteudo p {
+      margin: 0 0 20px;
+      color: #6b7280;
+    }
+
+    .botao-som {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 20px;
+      background: #2563eb;
+      color: #fff;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: bold;
+    }
+
+    .botao-som:hover {
+      background: #1d4ed8;
+    }
+
+    #fogos {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .musica-youtube {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      border: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @keyframes aparecer {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
     }
 
 
@@ -157,6 +233,22 @@
 
       <div class="dias-uteis" data-campo="diasUteis">Calculando dias uteis...</div>
     </div>
+  </div>
+
+  <div class="celebracao" aria-live="polite">
+    <canvas id="fogos" aria-hidden="true"></canvas>
+    <div class="celebracao-conteudo">
+      <h2>Começou suas férias!</h2>
+      <p>Parabéns! Aproveite muito o seu período de descanso.</p>
+      <button type="button" class="botao-som">🔊 Tocar música</button>
+      <iframe
+        id="musica-youtube"
+        class="musica-youtube"
+        title="Música de comemoração"
+        allow="autoplay; encrypted-media"
+        referrerpolicy="strict-origin-when-cross-origin"></iframe>
+    </div>
+  </div>
 
     
 
@@ -196,10 +288,14 @@
       const diasUteisEl = card.querySelector('[data-campo="diasUteis"]');
 
       if (diferenca <= 0) {
-        timer.innerHTML = '<div class="finalizado">Tempo esgotado!</div>';
+        timer.innerHTML = '<div class="finalizado">Começou suas férias!</div>';
         progressBar.style.width = "100%";
         status.innerText = "Evento finalizado";
         diasUteisEl.innerText = "0 dias uteis restantes";
+        if (!card.dataset.finalizado) {
+          card.dataset.finalizado = "true";
+          iniciarCelebracao();
+        }
         return;
       }
 
@@ -229,6 +325,92 @@
     function atualizarTimers() {
       document.querySelectorAll(".card").forEach(atualizarTimer);
     }
+
+    const celebracao = document.querySelector(".celebracao");
+    const canvasFogos = document.getElementById("fogos");
+    const contextoFogos = canvasFogos.getContext("2d");
+    let fogos = [];
+    let animacaoFogos;
+    const musicaYoutube = document.getElementById("musica-youtube");
+    const urlMusica = "https://www.youtube.com/embed/HWjCStB6k4o?autoplay=1&loop=1&playlist=HWjCStB6k4o";
+
+    function ajustarCanvasFogos() {
+      canvasFogos.width = window.innerWidth;
+      canvasFogos.height = window.innerHeight;
+    }
+
+    function criarFogo(x, y) {
+      const cores = ["#facc15", "#fb7185", "#38bdf8", "#a78bfa", "#4ade80"];
+      const cor = cores[Math.floor(Math.random() * cores.length)];
+
+      for (let i = 0; i < 70; i++) {
+        const angulo = (Math.PI * 2 * i) / 70;
+        const velocidade = 1.5 + Math.random() * 4;
+        fogos.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angulo) * velocidade,
+          vy: Math.sin(angulo) * velocidade,
+          vida: 1,
+          cor: cor
+        });
+      }
+    }
+
+    function animarFogos() {
+      contextoFogos.fillStyle = "rgba(15, 23, 42, 0.2)";
+      contextoFogos.fillRect(0, 0, canvasFogos.width, canvasFogos.height);
+
+      fogos = fogos.filter(function (fogo) {
+        fogo.x += fogo.vx;
+        fogo.y += fogo.vy;
+        fogo.vy += 0.035;
+        fogo.vida -= 0.012;
+
+        contextoFogos.globalAlpha = Math.max(fogo.vida, 0);
+        contextoFogos.fillStyle = fogo.cor;
+        contextoFogos.beginPath();
+        contextoFogos.arc(fogo.x, fogo.y, 2.5, 0, Math.PI * 2);
+        contextoFogos.fill();
+        return fogo.vida > 0;
+      });
+
+      contextoFogos.globalAlpha = 1;
+      if (celebracao.classList.contains("visivel")) {
+        animacaoFogos = requestAnimationFrame(animarFogos);
+      }
+    }
+
+    function iniciarFogos() {
+      ajustarCanvasFogos();
+      cancelAnimationFrame(animacaoFogos);
+      fogos = [];
+      animarFogos();
+
+      const intervalo = setInterval(function () {
+        if (!celebracao.classList.contains("visivel")) {
+          clearInterval(intervalo);
+          return;
+        }
+        criarFogo(
+          window.innerWidth * (0.15 + Math.random() * 0.7),
+          window.innerHeight * (0.15 + Math.random() * 0.45)
+        );
+      }, 650);
+    }
+
+    function tocarMusica() {
+      musicaYoutube.src = urlMusica;
+    }
+
+    function iniciarCelebracao() {
+      celebracao.classList.add("visivel");
+      iniciarFogos();
+      tocarMusica();
+    }
+
+    document.querySelector(".botao-som").addEventListener("click", tocarMusica);
+    window.addEventListener("resize", ajustarCanvasFogos);
 
     atualizarTimers();
     setInterval(atualizarTimers, 1000);
